@@ -20,6 +20,7 @@ To get started with CAN Commander, follow these steps:
 1. **Clone the Repository**:
 
 2. **Setup and Installation**:
+- Install Android application (iOS App coming very soon)
 - Clone and install autowp's mcp2515 library: https://github.com/autowp/arduino-mcp2515
 - Grab a compatible microcontroller and mcp2515 module (recommendations below)
 - Flash the microcontroller and hookup the mcp2515 to it via SPI
