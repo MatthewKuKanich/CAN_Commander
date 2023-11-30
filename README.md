@@ -27,7 +27,8 @@ To get started with CAN Commander, follow these steps:
 - Connect your CAN High and Low wires or plug in an OBDII adapter
 
 3. **Running the Tool**:
-- Be sure to flash the CAN_Commander arduino script
+- Be sure to flash the CAN_Commander arduino script.
+- If using the android app flash CAN_WiFi to an ESP32
 - Follow terminal based prompts
 
 ## Usage
