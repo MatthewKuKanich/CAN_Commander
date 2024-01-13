@@ -1,16 +1,21 @@
-// Custom CAN bus Controller by Matthew KuKanich
-#include <SPI.h>
+/**
+ * @file CAN_Commander.ino
+ * @brief Custom CAN bus Controller by Matthew KuKanich
+ */
+
 #include <mcp2515.h>
-#include <avr/wdt.h>
+#include <avr/wdt.h> // Include the AVR watchdog timer header
+#include <Arduino.h>
+#include <SPI.h>
 
-
-bool asciiMode = false;  // False for HEX as default output
+bool asciiMode = false; // False for HEX as default output
 bool stopExecution = false;
 
 struct can_frame canMsg;
-MCP2515 mcp2515(9);  // CS pin 9 for me, 10 for most
+MCP2515 mcp2515(9); // CS pin 9 for me, 10 for most
 
-enum Mode {
+enum Mode
+{
   MODE_NONE,
   MODE_READ_ALL,
   MODE_READ_FILTERED,
@@ -19,16 +24,17 @@ enum Mode {
 };
 
 Mode currentMode = MODE_NONE;
-int messageFrequency = 1;  // 1/second default
+int messageFrequency = 1; // 1 second default
 
-void setup() {
-  wdt_disable(); // Prevent continous resets after a reset has been triggered
+void setup()
+{
+  wdt_disable(); // Prevent continuous resets after a reset has been triggered
   Serial.begin(115200);
   while (!Serial)
-    ;  // Wait for serial port to connect.
-  
+    ; // Wait for serial port to connect.
+
   mcp2515.reset();
-  mcp2515.setBitrate(CAN_125KBPS, MCP_16MHZ);  // Set to default HS CAN bus, use 125 for MS
+  mcp2515.setBitrate(CAN_125KBPS, MCP_16MHZ); // Set to default HS CAN bus, use 125 for MS
   mcp2515.setConfigMode();
 
   Serial.println("Select mode:");
@@ -37,98 +43,122 @@ void setup() {
   Serial.println("3: CAN Speedtest");
   Serial.println("4: CAN Read Filtered Traffic");
 
-  while (currentMode == MODE_NONE) {
-    if (Serial.available() > 0) {
+  while (currentMode == MODE_NONE)
+  {
+    if (Serial.available() > 0)
+    {
       int modeSelect = Serial.parseInt();
-      switch (modeSelect) {
-        case 1:
-          currentMode = MODE_READ_ALL;
-          Serial.println("CAN Read All Traffic selected.");
-          Serial.println("Press 'a' to toggle ASCII mode on/off");
-          mcp2515.setNormalMode();
-          break;
-        case 2:
-          currentMode = MODE_WRITE;
-          Serial.println("Enter CAN message to send (ID DLC DATA...):");
-          while (!Serial.available())
-            ;  // Wait for user input
-          prepareCanWrite();
-          Serial.println("CAN Write selected.");
-          mcp2515.setNormalMode();
-          break;
-        case 3:
-          currentMode = MODE_SPEEDTEST;
-          Serial.println("CAN Speedtest selected.");
-          mcp2515.setNormalMode();
-          break;
-        case 4:
-          currentMode = MODE_READ_FILTERED;
-          setupCanFilters();
-          mcp2515.setNormalMode();
-          Serial.println("CAN Read Filtered Traffic selected.");
-          Serial.println("Press 'a' to toggle ASCII mode on/off");
-          break;
-        default:
-          Serial.println("Invalid selection. Select 1, 2, 3, or 4.");
-          break;
+      switch (modeSelect)
+      {
+      case 1:
+        currentMode = MODE_READ_ALL;
+        Serial.println("CAN Read All Traffic selected.");
+        Serial.println("Press 'a' to toggle ASCII mode on/off");
+        mcp2515.setNormalMode();
+        break;
+      case 2:
+        currentMode = MODE_WRITE;
+        Serial.println("Enter CAN message to send (ID DLC DATA...):");
+        while (!Serial.available())
+          ; // Wait for user input
+        prepareCanWrite();
+        Serial.println("CAN Write selected.");
+        mcp2515.setNormalMode();
+        break;
+      case 3:
+        currentMode = MODE_SPEEDTEST;
+        Serial.println("CAN Speedtest selected.");
+        mcp2515.setNormalMode();
+        break;
+      case 4:
+        currentMode = MODE_READ_FILTERED;
+        setupCanFilters();
+        mcp2515.setNormalMode();
+        Serial.println("CAN Read Filtered Traffic selected.");
+        Serial.println("Press 'a' to toggle ASCII mode on/off");
+        break;
+      default:
+        Serial.println("Invalid selection. Select 1, 2, 3, or 4.");
+        break;
       }
     }
   }
 }
 
-void loop() {
-  switch (currentMode) {
-    case MODE_READ_ALL:
-      if (Serial.available()) {
-        char input = Serial.read();
-        if (input == 'a' || input == 'A') {
-          asciiMode = !asciiMode;
-          Serial.print("ASCII mode ");
-          Serial.println(asciiMode ? "ON" : "OFF");
-        }
-        if (input == 's') {
-          stopExecution = true;
-        }
+void loop()
+{
+  switch (currentMode)
+  {
+  case MODE_READ_ALL:
+    if (Serial.available())
+    {
+      char input = Serial.read();
+      if (input == 'a' || input == 'A')
+      {
+        asciiMode = !asciiMode;
+        Serial.print("ASCII mode ");
+        Serial.println(asciiMode ? "ON" : "OFF");
       }
-      canRead();
-      break;
-    case MODE_WRITE:
-      canWrite();
-      break;
-    case MODE_SPEEDTEST:
-      canSpeedtest();
-      break;
-    case MODE_READ_FILTERED:
-      if (Serial.available()) {
-        char input = Serial.read();
-        if (input == 'a' || input == 'A') {
-          asciiMode = !asciiMode;
-          Serial.print("ASCII mode ");
-          Serial.println(asciiMode ? "ON" : "OFF");
-        }
-        if (input == 's') {
-          stopExecution = true;
-        }
+      if (input == 's')
+      {
+        stopExecution = true;
       }
-      canRead();
-      break;
-    default:
-      // No default case
-      break;
+    }
+    canRead();
+    break;
+  case MODE_WRITE:
+    canWrite();
+    break;
+  case MODE_SPEEDTEST:
+    canSpeedtest();
+    break;
+  case MODE_READ_FILTERED:
+    if (Serial.available())
+    {
+      char input = Serial.read();
+      if (input == 'a' || input == 'A')
+      {
+        asciiMode = !asciiMode;
+        Serial.print("ASCII mode ");
+        Serial.println(asciiMode ? "ON" : "OFF");
+      }
+      if (input == 's')
+      {
+        stopExecution = true;
+      }
+    }
+    canRead();
+    break;
+  default:
+    // No default case
+    break;
   }
 }
 
-bool isPrintable(uint8_t byte) {
+/**
+ * @brief Check if a byte is printable ASCII character
+ * @param byte The byte to check
+ * @return True if the byte is printable, false otherwise
+ */
+bool isPrintable(uint8_t byte)
+{
   return byte >= 32 && byte <= 126;
 }
 
-void canRead() {
-  if (stopExecution == true) {
+/**
+ * @brief Read and print CAN messages
+ */
+void canRead()
+{
+  if (stopExecution == true)
+  {
     Serial.println("Stopping execution and resetting...");
     wdt_enable(WDTO_15MS);
-    while(true); // Wait for the watchdog timer to reset the Arduino
+    while (true)
+      ; // Wait for the watchdog timer to reset the Arduino
   }
-  if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK) {
+  if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
+  {
 
     Serial.print("ID: ");
     Serial.print(canMsg.can_id, HEX);
@@ -136,15 +166,22 @@ void canRead() {
     Serial.print(canMsg.can_dlc, HEX);
     Serial.print(" Data: ");
 
-    for (int i = 0; i < canMsg.can_dlc; i++) {  // print the data
-      if (asciiMode) {
+    for (int i = 0; i < canMsg.can_dlc; i++)
+    { // Print the data
+      if (asciiMode)
+      {
         // Print as ASCII characters
-        if (isPrintable(canMsg.data[i])) {
+        if (isPrintable(canMsg.data[i]))
+        {
           Serial.print((char)canMsg.data[i]);
-        } else {
+        }
+        else
+        {
           Serial.print('.');
         }
-      } else {
+      }
+      else
+      {
         Serial.print(canMsg.data[i], HEX);
         Serial.print(" ");
       }
@@ -153,33 +190,39 @@ void canRead() {
   }
 }
 
-void setupCanFilters() {
-  char inputBuffer[10];  // Buffer for the input
+void setupCanFilters()
+{
+  char inputBuffer[10]; // Buffer for the input
 
   // Clear the Serial buffer
-  while (Serial.available() > 0) {
+  while (Serial.available() > 0)
+  {
     Serial.read();
   }
 
   // Read mask in hex
   Serial.println("Enter Mask in HEX (e.g., 7FF for all bits):");
-  while (!Serial.available());  // Wait for user input
+  while (!Serial.available())
+    ; // Wait for user input
   Serial.readBytesUntil('\n', inputBuffer, sizeof(inputBuffer) - 1);
-  inputBuffer[sizeof(inputBuffer) - 1] = 0;  // Ensure null-termination
+  inputBuffer[sizeof(inputBuffer) - 1] = 0; // Ensure null-termination
   uint32_t mask = strtol(inputBuffer, NULL, 16);
 
-  while (Serial.available() > 0) {
+  while (Serial.available() > 0)
+  {
     Serial.read();
   }
 
   // Read filter in hex
   Serial.println("Enter Filter in HEX (e.g., 201 for specific ID):");
-  while (!Serial.available());
+  while (!Serial.available())
+    ;
   Serial.readBytesUntil('\n', inputBuffer, sizeof(inputBuffer) - 1);
   inputBuffer[sizeof(inputBuffer) - 1] = 0;
   uint32_t filter = strtol(inputBuffer, NULL, 16);
 
-  if (mask == 0) {
+  if (mask == 0)
+  {
     mask = 2047;
   }
   Serial.print("Setting Mask: 0x");
@@ -187,8 +230,8 @@ void setupCanFilters() {
   Serial.print("Setting Filter: 0x");
   Serial.println(filter, HEX);
 
-  mcp2515.setFilterMask(MCP2515::MASK0, false, mask);  // You must setup all masks/filters
-  mcp2515.setFilterMask(MCP2515::MASK1, false, mask);  // Even when you only need 1
+  mcp2515.setFilterMask(MCP2515::MASK0, false, mask); // You must setup all masks/filters
+  mcp2515.setFilterMask(MCP2515::MASK1, false, mask); // Even when you only need 1
 
   mcp2515.setFilter(MCP2515::RXF0, false, filter);
   mcp2515.setFilter(MCP2515::RXF1, false, filter);
@@ -198,13 +241,18 @@ void setupCanFilters() {
   mcp2515.setFilter(MCP2515::RXF5, false, filter);
 }
 
-
-void prepareCanWrite() {
-  char inputBuffer[20];  // Buffer size
+/**
+ * @brief Prepare a custom CAN message to send
+ */
+void prepareCanWrite()
+{
+  char inputBuffer[20]; // Buffer size
 
   // Function to clear the Serial buffer
-  auto clearSerialBuffer = []() {
-    while (Serial.available() > 0) {
+  auto clearSerialBuffer = []()
+  {
+    while (Serial.available() > 0)
+    {
       Serial.read();
     }
   };
@@ -213,8 +261,8 @@ void prepareCanWrite() {
   Serial.println("Enter CAN ID in HEX:");
   clearSerialBuffer();
   while (!Serial.available())
-    ;                                           // Wait for user input
-  memset(inputBuffer, 0, sizeof(inputBuffer));  // Clear input buffer
+    ;                                          // Wait for user input
+  memset(inputBuffer, 0, sizeof(inputBuffer)); // Clear input buffer
   Serial.readBytesUntil('\n', inputBuffer, sizeof(inputBuffer) - 1);
   canMsg.can_id = strtol(inputBuffer, NULL, 16);
   Serial.print("CAN ID: 0x");
@@ -224,22 +272,23 @@ void prepareCanWrite() {
   Serial.println("Enter CAN DLC:");
   clearSerialBuffer();
   while (!Serial.available())
-    ;                                           // Wait for user input
-  memset(inputBuffer, 0, sizeof(inputBuffer));  // Clear input buffer
+    ;                                          // Wait for user input
+  memset(inputBuffer, 0, sizeof(inputBuffer)); // Clear input buffer
   Serial.readBytesUntil('\n', inputBuffer, sizeof(inputBuffer) - 1);
   canMsg.can_dlc = strtol(inputBuffer, NULL, 10);
   Serial.print("DLC: ");
   Serial.println(canMsg.can_dlc);
 
   // Read CAN DATA in hex
-  for (int i = 0; i < canMsg.can_dlc; i++) {
+  for (int i = 0; i < canMsg.can_dlc; i++)
+  {
     Serial.print("Enter DATA byte ");
     Serial.print(i);
     Serial.println(" in HEX:");
     clearSerialBuffer();
     while (!Serial.available())
-      ;                                           // Wait for user input
-    memset(inputBuffer, 0, sizeof(inputBuffer));  // Clear input buffer
+      ;                                          // Wait for user input
+    memset(inputBuffer, 0, sizeof(inputBuffer)); // Clear input buffer
     Serial.readBytesUntil('\n', inputBuffer, sizeof(inputBuffer) - 1);
     canMsg.data[i] = strtol(inputBuffer, NULL, 16);
     Serial.print("Data byte ");
@@ -251,12 +300,18 @@ void prepareCanWrite() {
   Serial.println("Custom message prepared.");
 }
 
-void canWrite() {
+/**
+ * @brief Send CAN messages at a specified frequency
+ */
+void canWrite()
+{
   Serial.println("Enter CAN Write Speed (messages/s):");
-  while (Serial.available() > 0) {
+  while (Serial.available() > 0)
+  {
     Serial.read();
   }
-  while (!Serial.available());  // Wait for user input
+  while (!Serial.available())
+    ; // Wait for user input
 
   messageFrequency = Serial.parseInt();
   Serial.print("Message frequency set to: ");
@@ -264,44 +319,55 @@ void canWrite() {
   Serial.println(" messages/s");
 
   int messageDelay = 1000 / messageFrequency;
-  while(true) {
+  while (true)
+  {
     mcp2515.sendMessage(&canMsg);
     Serial.println("Message sent");
     delay(messageDelay);
-    if (Serial.available() > 0) {
+    if (Serial.available() > 0)
+    {
       String command = Serial.readStringUntil('\n');
-      if (command == "s") {
+      if (command == "s")
+      {
         Serial.println("Stopping and resetting...");
-        
+
         // Enable the watchdog for a reset
         wdt_enable(WDTO_15MS);
-        while(true);  // Wait for the watchdog timer to reset the Arduino
+        while (true)
+          ; // Wait for the watchdog timer to reset the Arduino
       }
     }
   }
 }
 
-
-
-void canSpeedtest() {
+/**
+ * @brief Perform CAN speed test
+ */
+void canSpeedtest()
+{
   static int cntr = 0;
   static unsigned long oldTime = 0;
 
-  if (Serial.available() > 0) {
+  if (Serial.available() > 0)
+  {
     String command = Serial.readStringUntil('\n');
-    if (command == "s") {
+    if (command == "s")
+    {
       Serial.println("Stopping and resetting...");
-      
+
       // Enable the watchdog for a reset
       wdt_enable(WDTO_15MS);
-      while(true);  // Wait for the watchdog timer to reset the Arduino
+      while (true)
+        ; // Wait for the watchdog timer to reset the Arduino
     }
   }
-  if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK) {
+  if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
+  {
     cntr++;
   }
 
-  if ((millis() - oldTime) > 1000) {
+  if ((millis() - oldTime) > 1000)
+  {
     oldTime = millis();
     Serial.print(cntr);
     Serial.println(" msg/sec");
