@@ -18,25 +18,43 @@ CAN Commander is a comprehensive tool designed for the reverse engineering of CA
 To get started with CAN Commander, follow these steps:
 
 1. **Clone the Repository**:
+   - Next install autowp's mcp2515 library: https://github.com/autowp/arduino-mcp2515
 
 2. **Setup and Installation**:
-- Install Android application (iOS App coming very soon)
-- Clone and install autowp's mcp2515 library: https://github.com/autowp/arduino-mcp2515
-- Grab a compatible microcontroller and mcp2515 module (recommendations below)
-- Flash the microcontroller and hookup the mcp2515 to it via SPI
-- Connect your CAN High and Low wires or plug in an OBDII adapter
+   1. **Flashing the Main Application**:
+      - The core of CAN Commander is the `CAN_Commander.ino` script.
+      - This script must be flashed onto a compatible microcontroller like Arduino Uno, Mega, or Nano using the Arduino IDE.
 
-3. **Running the Tool**:
-- Be sure to flash the CAN_Commander arduino script.
-- If using the android app flash CAN_WiFi to an ESP32
-- Follow terminal based prompts
+   2. **MCP2515 CAN Controller**:
+      - The MCP2515 is a CAN (Controller Area Network) controller that interfaces with microcontrollers over SPI (Serial Peripheral Interface).
+      - It typically comes as a breakout board which you need to connect to your microcontroller.
+    
+       - Connect the MCP2515's MOSI, MISO, SCK, and CS pins to the corresponding SPI pins on the Arduino. **Please Verify for your Arduino**
+       - For Arduino Uno, Mega, and Nano, the SPI pins are usually located as follows:
+          - **MOSI**: Pin 11
+          - **MISO**: Pin 12
+          - **SCK**: Pin 13
+          - **CS**: Pin 10 (You can use other digital pins, but Pin 10 is standard for most libraries)
+
+**Using 3.3V Logic Microcontrollers**
+- If you're using a microcontroller like the ESP32 or Raspberry Pi Pico, which operate at 3.3V logic, you need a level shifter.
+- The level shifter will convert the 5V signals from the MCP2515 to 3.3V, making it safe to connect to these microcontrollers.
+
+**Optional: Mobile App**
+    In addition to the main `CAN_Commander.ino` application, there is also a mobile app available. This is not the main application and is optional. If you choose to use it, you can find the source code in the `AndroidEnvironment/CANCommanderApp_BLE_Edition` and `AndroidEnvironment/CANCommanderApp_WiFi_Edition` directories.
+    1. **Running the Tool**:
+    - Flash CAN_WiFi to an ESP32 or WiFi enabled Arduino
 
 ## Usage
-- **Basic Operations**: Usage guide will be updated soon with indepth tutorials, currently a WIP
-- How to send a message.
-- How to log and analyze traffic.
+- **Basic Operations**:
+  - **Reading ALL CAN data:** Input `1` into the terminal to start reading all CAN traffic. You can input `a` to convert the received message data into *ASCII*.
+    
+  - **Filter and Read:** Input `4` into the terminal, then input a **Filter Mask** in *HEX*, finally input the **Frame ID** you want to filter and hit enter.
+    
+  - **Sending CAN messages:** Input `2` into the terminal, then input the **Frame ID** you want for your message, next input the data of the message in **HEX** format. Then specify the send/message frequency of your frame in messages per second. (Input `5` to send 5 messages per second)
+    
 - **Advanced Features**:
-- Detailed guides on using advanced features like message decoding soon!
+  - Detailed guide still in the works
 
 ## Hardware Requirements
 - Microcontroller (Arduino Uno, Mega, Nano, Pico, ESP8266, ESP32)
