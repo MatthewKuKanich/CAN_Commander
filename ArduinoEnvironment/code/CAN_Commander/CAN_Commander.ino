@@ -20,7 +20,8 @@ enum Mode
   MODE_READ_ALL,
   MODE_READ_FILTERED,
   MODE_WRITE,
-  MODE_SPEEDTEST
+  MODE_SPEEDTEST,
+  MODE_VALTRACKER
 };
 
 Mode currentMode = MODE_NONE;
@@ -42,6 +43,7 @@ void setup()
   Serial.println("2: CAN Write");
   Serial.println("3: CAN Speedtest");
   Serial.println("4: CAN Read Filtered Traffic");
+  Serial.println("5: Filter and Track CAN Values");
 
   while (currentMode == MODE_NONE)
   {
@@ -77,8 +79,13 @@ void setup()
         Serial.println("CAN Read Filtered Traffic selected.");
         Serial.println("Press 'a' to toggle ASCII mode on/off");
         break;
+      case 5:
+        currentMode = MODE_VALTRACKER;
+        setupCanFilters();
+        mcp2515.setNormalMode();
+        break;
       default:
-        Serial.println("Invalid selection. Select 1, 2, 3, or 4.");
+        Serial.println("Invalid selection. Select 1, 2, 3, 4, or 5.");
         break;
       }
     }
@@ -128,6 +135,17 @@ void loop()
       }
     }
     canRead();
+    break;
+  case MODE_VALTRACKER:
+    if (Serial.available())
+    {
+      char input = Serial.read();
+      if (input == 's')
+      {
+        stopExecution = true;
+      }
+    }
+    canValTracker();
     break;
   default:
     // No default case
@@ -187,6 +205,52 @@ void canRead()
       }
     }
     Serial.println();
+  }
+}
+
+void canValTracker()
+{
+  static uint8_t lastData[8] = {0};
+  static uint8_t lastDlc = 0;
+  static uint32_t lastId = 0;
+  static bool firstRun = true;
+
+  if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
+  {
+    if (firstRun)
+    {
+      memcpy(lastData, canMsg.data, 8);
+      lastDlc = canMsg.can_dlc;
+      lastId = canMsg.can_id;
+      firstRun = false;
+    }
+    else
+    {
+      if (lastDlc != canMsg.can_dlc || lastId != canMsg.can_id)
+      {
+        Serial.println("DLC or ID changed, resetting...");
+        firstRun = true;
+        return;
+      }
+      for (int i = 0; i < canMsg.can_dlc; i++)
+      {
+        if (lastData[i] != canMsg.data[i])
+        {
+          Serial.print("Byte ");
+          Serial.print(i);
+          Serial.print(" changed from 0x");
+          Serial.print(lastData[i], HEX);
+          Serial.print(" (");
+          Serial.print(lastData[i], DEC);
+          Serial.print(") to 0x");
+          Serial.print(canMsg.data[i], HEX);
+          Serial.print(" (");
+          Serial.print(canMsg.data[i], DEC);
+          Serial.println(")");
+          lastData[i] = canMsg.data[i];
+        }
+      }
+    }
   }
 }
 

@@ -2,6 +2,7 @@
 build/
 dist/
 bin/
+output/
 
 # Ignore IDE and editor files
 .vscode/
