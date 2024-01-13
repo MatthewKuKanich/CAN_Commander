@@ -60,6 +60,8 @@ To get started with CAN Commander, follow these steps:
 - Microcontroller (Arduino Uno, Mega, Nano, Pico, ESP8266, ESP32)
 - MCP2515 (Make sure you verify the crystal 8/16/etc)
 
+![20240113_010817](https://github.com/MatthewKuKanich/CAN_Commander/assets/113921492/410fce00-e54a-4fb6-ad24-4d3d278d5a5b)
+
 ## Software Dependencies
 - Arduino IDE
 - USB, WiFi, or Bluetooth Serial Terminal
