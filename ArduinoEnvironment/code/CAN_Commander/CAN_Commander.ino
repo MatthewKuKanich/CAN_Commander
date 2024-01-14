@@ -35,7 +35,7 @@ void setup()
     ; // Wait for serial port to connect.
 
   mcp2515.reset();
-  mcp2515.setBitrate(CAN_125KBPS, MCP_16MHZ); // Set to default HS CAN bus, use 125 for MS
+  mcp2515.setBitrate(CAN_500KBPS, MCP_16MHZ); // Set to default HS CAN bus, use 125 for MS
   mcp2515.setConfigMode();
 
   Serial.println("Select mode:");
@@ -61,8 +61,6 @@ void setup()
       case 2:
         currentMode = MODE_WRITE;
         Serial.println("Enter CAN message to send (ID DLC DATA...):");
-        while (!Serial.available())
-          ; // Wait for user input
         prepareCanWrite();
         Serial.println("CAN Write selected.");
         mcp2515.setNormalMode();
@@ -214,6 +212,8 @@ void canValTracker()
   static uint8_t lastDlc = 0;
   static uint32_t lastId = 0;
   static bool firstRun = true;
+  static uint8_t minValue = 255;
+  static uint8_t maxValue = 0;
 
   if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
   {
@@ -248,8 +248,42 @@ void canValTracker()
           Serial.print(canMsg.data[i], DEC);
           Serial.println(")");
           lastData[i] = canMsg.data[i];
+
+          // Update min and max values
+          if (canMsg.data[i] < minValue)
+          {
+            minValue = canMsg.data[i];
+          }
+          if (canMsg.data[i] > maxValue)
+          {
+            maxValue = canMsg.data[i];
+          }
         }
       }
+    }
+  }
+
+  // Watchdog interrupt handling for min/max values
+  if (Serial.available())
+  {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    if (input == "min")
+    {
+      Serial.print("Minimum value: ");
+      Serial.println(minValue);
+    }
+    else if (input == "max")
+    {
+      Serial.print("Maximum value: ");
+      Serial.println(maxValue);
+    }
+    else if (input == "s")
+    {
+      Serial.println("Stopping execution and resetting...");
+      wdt_enable(WDTO_15MS);
+      while (true)
+        ; // Wait for the watchdog timer to reset the Arduino
     }
   }
 }
