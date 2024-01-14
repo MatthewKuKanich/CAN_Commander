@@ -47,14 +47,18 @@ To get started with CAN Commander, follow these steps:
 
 ## Usage
 - **Basic Operations**:
+  
   - **Reading ALL CAN data:** Input `1` into the terminal to start reading all CAN traffic. You can input `a` to convert the received message data into *ASCII*.
     
-  - **Filter and Read:** Input `4` into the terminal, then input a **Filter Mask** in *HEX*, finally input the **Frame ID** you want to filter and hit enter.
+  - **Filter and Read:** Input `4` into the terminal, then input a **Filter Mask** in *HEX*, finally input the **Frame ID** you want to filter and hit enter. The default Filter Mask is 7FF and can be used by just pressing enter at that step.
     
   - **Sending CAN messages:** Input `2` into the terminal, then input the **Frame ID** you want for your message, next input the data of the message in **HEX** format. Then specify the send/message frequency of your frame in messages per second. (Input `5` to send 5 messages per second)
     
 - **Advanced Features**:
-  - Detailed guide still in the works
+  
+  - **Tracking Data Changes:** Input `5` into the terminal to enter the data tracker. Then input a **Filter Mask**, then the **Frame ID** you want to track and hit enter. The program will now only show you when the data of that CAN ID changes and what the changes are.
+  
+  - **Tracking Min/Max Values:** Follow the **Tracking Data Changes**, then type `max` at any time to display the max value for that **Frame ID**. Likewise, type `min` at any point to display the minimum value. This resets upon restarting the program/function.
 
 ## Hardware Requirements
 - Microcontroller (Arduino Uno, Mega, Nano, Pico, ESP8266, ESP32)
