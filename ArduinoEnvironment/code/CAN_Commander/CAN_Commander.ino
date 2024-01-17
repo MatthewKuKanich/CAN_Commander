@@ -569,7 +569,7 @@ void sendPidRequest(uint8_t pid)
   can_frame pidRequestFrame;
 
   pidRequestFrame.can_id = 0x7DF; // Standard OBD-II request ID
-  pidRequestFrame.can_dlc = 8;   
+  pidRequestFrame.can_dlc = 8;
 
   // Constructing the 8 data bytes
   pidRequestFrame.data[0] = 0x02; // Number of additional data bytes
@@ -601,7 +601,7 @@ void managePID(uint8_t pid)
   if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
   {
     if (canMsg.can_id >= 0x7E8 && canMsg.can_id <= 0x7EF)
-    { // Standard OBD-II response ID filtering
+    {                            // Standard OBD-II response ID filtering
       if (canMsg.data[2] == pid) // Had issues using switch/case so temporarily using if/else
       {
         if (pid == PID_COOLANT_TEMP)
@@ -662,7 +662,12 @@ void managePID(uint8_t pid)
         }
         else
         {
-          Serial.println("PID not supported");
+          Serial.print("PID not supported, data dump: ");
+          for (int i = 3; i < canMsg.can_dlc; i++)
+          { // Print the data
+            Serial.print(canMsg.data[i], HEX);
+            Serial.println(" ");
+          }
         }
       }
     }
