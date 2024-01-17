@@ -59,6 +59,8 @@ To get started with CAN Commander, follow these steps:
   - **Tracking Data Changes:** Input `5` into the terminal to enter the data tracker. Then input a **Filter Mask**, then the **Frame ID** you want to track and hit enter. The program will now only show you when the data of that CAN ID changes and what the changes are.
   
   - **Tracking Min/Max Values:** Follow the **Tracking Data Changes**, then type `max` at any time to display the max value for that **Frame ID**. Likewise, type `min` at any point to display the minimum value. This resets upon restarting the program/function.
+    
+  - **View Diagnostics Data:** Input `6` into the terminal to enter diagnostics mode/PID manager. Then enter the PID you wish to view in hex format. These are universal codes which can be found online, or by enter the code `0x0` as the PID. Several PIDs are listed when you enter diagnostics mode to get you started. This will be greatly expanded soon with support for all available PIDs. A DTC (Diagnostic Trouble Code) viewer and clearer are in the works and will be released soon including the ability to clear 'permanent' DTC and turn off the check engine light. Stay tuned!
 
 ## Hardware Requirements
 - Microcontroller (Arduino Uno, Mega, Nano, Pico, ESP8266, ESP32)
