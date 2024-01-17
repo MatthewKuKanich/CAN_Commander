@@ -190,7 +190,7 @@ void loop()
         stopExecution = true;
       }
     }
-
+    sendPidRequest(pid);
     managePID(pid);
     break;
   default:
@@ -582,18 +582,22 @@ void sendPidRequest(uint8_t pid)
   }
 
   // Send the PID request frame
+  delay(50); // Delay to prevent CAN bus errors (not sure if needed)
   if (mcp2515.sendMessage(&pidRequestFrame) != MCP2515::ERROR_OK)
   {
     Serial.println("Error sending PID request");
-  }
-  else
-  {
-    Serial.println("PID request sent");
   }
 }
 
 void managePID(uint8_t pid)
 {
+  if (stopExecution == true)
+  {
+    Serial.println("Stopping execution and resetting...");
+    wdt_enable(WDTO_15MS);
+    while (true)
+      ; // Wait for the watchdog timer to reset the Arduino
+  }
   if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
   {
     if (canMsg.can_id >= 0x7E8 && canMsg.can_id <= 0x7EF)
@@ -609,7 +613,6 @@ void managePID(uint8_t pid)
         }
         else if (pid == PID_ENGINE_RPM)
         {
-          Serial.println("Engine RPM");
           int rpm = ((canMsg.data[3] * 256) + canMsg.data[4]) / 4;
           Serial.print("Engine RPM: ");
           Serial.print(rpm);
