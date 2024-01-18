@@ -41,6 +41,7 @@
 #define PID_ENGINE_OIL_TEMP 0x5C
 #define PID_ENGINE_OIL_PRESSURE 0x5D
 #define PID_ENGINE_FUEL_RATE 0x5E
+#define PID_ODOMETER 0xA6
 
 bool asciiMode = false; // False for HEX as default output
 bool stopExecution = false;
@@ -562,6 +563,7 @@ uint8_t setupPID()
   Serial.println("Fuel Level: 0x2F");
   Serial.println("Intake Temp: 0x0F");
   Serial.println("Barometric Pressure: 0x33");
+  Serial.println("Odometer: 0xA6");
   Serial.println("");
   Serial.println("Use code 0x00 to view all PIDs");
   Serial.println("");
@@ -605,7 +607,7 @@ void sendPidRequest(uint8_t pid)
   }
 
   // Send the PID request frame
-  delay(100); // Delay to prevent CAN bus errors (not sure if needed)
+  delay(3); // Delay to prevent CAN bus errors (needs fine tuning (1-5ms works > 8 causes errors))
   if (mcp2515.sendMessage(&pidRequestFrame) != MCP2515::ERROR_OK)
   {
     Serial.println("Error sending PID request");
@@ -680,6 +682,22 @@ void managePID(uint8_t pid)
           Serial.print("Barometric Pressure: ");
           Serial.print(pressure);
           Serial.println(" kPa");
+        }
+        else if (pid == PID_ODOMETER) {
+          unsigned long odometerKm = ((unsigned long)(canMsg.data[3] == 0xCC ? 0 : canMsg.data[3]) << 24) |
+                                    ((unsigned long)(canMsg.data[4] == 0xCC ? 0 : canMsg.data[4]) << 16) |
+                                    ((unsigned long)(canMsg.data[5] == 0xCC ? 0 : canMsg.data[5]) << 8)  |
+                                    (unsigned long)(canMsg.data[6] == 0xCC ? 0 : canMsg.data[6]);
+          odometerKm /= 10; // Divide by 10 as per the formula
+
+          // Convert kilometers to miles
+          float odometerMiles = odometerKm * 0.621371;
+
+          Serial.print("Odometer: ");
+          Serial.print(odometerKm);
+          Serial.print(" km | ");
+          Serial.print(odometerMiles, 2); // Print miles with two decimal places
+          Serial.println(" miles");
         }
         else
         {
