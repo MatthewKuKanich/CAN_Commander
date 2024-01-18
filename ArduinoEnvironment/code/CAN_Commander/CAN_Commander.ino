@@ -563,7 +563,6 @@ uint8_t setupPID()
   Serial.println("Fuel Level: 0x2F");
   Serial.println("Intake Temp: 0x0F");
   Serial.println("Barometric Pressure: 0x33");
-  Serial.println("Odometer: 0xA6");
   Serial.println("");
   Serial.println("Use code 0x00 to view all PIDs");
   Serial.println("");
