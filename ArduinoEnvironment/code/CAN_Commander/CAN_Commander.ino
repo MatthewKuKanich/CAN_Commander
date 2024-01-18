@@ -4,9 +4,16 @@
  */
 
 #include <mcp2515.h>
-#include <avr/wdt.h> // Include the AVR watchdog timer header
 #include <Arduino.h>
 #include <SPI.h>
+
+#ifdef ESP32
+#include <esp_task_wdt.h> // Add support for ESP32 watchdog timer
+#else
+#include <avr/wdt.h> // Include the AVR watchdog timer header
+#endif
+
+#define WDT_TIMEOUT 1 // Watchdog timeout in seconds
 
 // Some service PIDs, will add more later and eventually move to SD card
 #define PID_COOLANT_TEMP 0x05
@@ -58,7 +65,15 @@ uint8_t pid = 0;          // Declare the pid variable
 
 void setup()
 {
-  wdt_disable(); // Prevent continuous resets after a reset has been triggered
+
+  #ifdef ESP32
+  // Initialize and enable the watchdog timer for ESP32
+  esp_task_wdt_init(WDT_TIMEOUT, true); // Timeout in seconds
+  esp_task_wdt_add(NULL); // Add the current task to the watchdog
+  #else
+  wdt_disable(); // For AVR, disable the watchdog
+  #endif
+
   Serial.begin(115200);
   while (!Serial)
     ; // Wait for serial port to connect.
@@ -115,7 +130,7 @@ void setup()
       case 6:
         currentMode = MODE_PID_MANAGER;
         Serial.println("Diagnostics and PID Manager selected.");
-        uint8_t pid = setupPID();
+        pid = setupPID();
         mcp2515.setNormalMode();
         break;
       default:
@@ -197,6 +212,20 @@ void loop()
     // No default case
     break;
   }
+  
+  #ifdef ESP32
+  esp_task_wdt_reset(); // Regularly reset the watchdog timer
+  #endif
+}
+
+void resetDevice() {
+    #ifdef ESP32
+    esp_task_wdt_init(1, true); // Set a short timeout for a quick reset
+    while(true); // Wait for the watchdog to trigger a reset
+    #else
+    wdt_enable(WDTO_15MS); // For AVR
+    while(true);
+    #endif
 }
 
 /**
@@ -217,7 +246,7 @@ void canRead()
   if (stopExecution == true)
   {
     Serial.println("Stopping execution and resetting...");
-    wdt_enable(WDTO_15MS);
+    resetDevice();
     while (true)
       ; // Wait for the watchdog timer to reset the Arduino
   }
@@ -329,9 +358,7 @@ void canValTracker()
     else if (input == "s")
     {
       Serial.println("Stopping execution and resetting...");
-      wdt_enable(WDTO_15MS);
-      while (true)
-        ; // Wait for the watchdog timer to reset the Arduino
+      resetDevice();
     }
   }
 }
@@ -478,9 +505,7 @@ void canWrite()
         Serial.println("Stopping and resetting...");
 
         // Enable the watchdog for a reset
-        wdt_enable(WDTO_15MS);
-        while (true)
-          ; // Wait for the watchdog timer to reset the Arduino
+        resetDevice();
       }
     }
   }
@@ -502,9 +527,7 @@ void canSpeedtest()
       Serial.println("Stopping and resetting...");
 
       // Enable the watchdog for a reset
-      wdt_enable(WDTO_15MS);
-      while (true)
-        ; // Wait for the watchdog timer to reset the Arduino
+      resetDevice();
     }
   }
   if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
@@ -594,9 +617,7 @@ void managePID(uint8_t pid)
   if (stopExecution == true)
   {
     Serial.println("Stopping execution and resetting...");
-    wdt_enable(WDTO_15MS);
-    while (true)
-      ; // Wait for the watchdog timer to reset the Arduino
+    resetDevice();
   }
   if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
   {
