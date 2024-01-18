@@ -582,7 +582,7 @@ void sendPidRequest(uint8_t pid)
   }
 
   // Send the PID request frame
-  delay(50); // Delay to prevent CAN bus errors (not sure if needed)
+  delay(100); // Delay to prevent CAN bus errors (not sure if needed)
   if (mcp2515.sendMessage(&pidRequestFrame) != MCP2515::ERROR_OK)
   {
     Serial.println("Error sending PID request");
@@ -662,7 +662,7 @@ void managePID(uint8_t pid)
         }
         else
         {
-          Serial.print("PID not supported, data dump: ");
+          Serial.print("PID not parsed, data dump: ");
           for (int i = 3; i < canMsg.can_dlc; i++)
           { // Print the data
             Serial.print(canMsg.data[i], HEX);
