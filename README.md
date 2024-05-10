@@ -20,6 +20,13 @@ To get started with CAN Commander, follow these steps:
 1. **Clone the Repository**:
    - Next install autowp's mcp2515 library: https://github.com/autowp/arduino-mcp2515
 
+1.5 **Using the CAN Commander Official Board**:
+   - All CAN Commander Official Boards ship pre-flashed :)
+   - To update use the update tool or download the latest code from this repo
+   - New instructions for the CAN Commander FlipperZero app will be posted in the coming days.
+   - All functionality will be accessible via a complete GUI interface with easy to use buttons/toggles
+   - This includes access to the on board *****, the external ***** module, and the *****! TBA ;)
+     
 2. **Setup and Installation**:
    1. **Flashing the Main Application**:
       - The core of CAN Commander is the `CAN_Commander.ino` script.
