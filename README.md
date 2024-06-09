@@ -25,7 +25,7 @@ To get started with CAN Commander, follow these steps:
    - To update use the update tool or download the latest code from this repo
    - New instructions for the CAN Commander FlipperZero app will be posted in the coming days.
    - All functionality will be accessible via a complete GUI interface with easy to use buttons/toggles
-   - This includes access to the on board *****, the external ***** module, and the *****! TBA ;)
+   - This includes access to the on board GPS, the external CC1101 module, and the user programmable Neopixels
      
 2. **Setup and Installation**:
    1. **Flashing the Main Application**:
