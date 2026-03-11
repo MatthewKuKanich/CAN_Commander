@@ -24,12 +24,16 @@
 #define APP_CUSTOM_INJECT_CFG_PATH APP_DATA_PATH("custom_inject.cfg")
 #define APP_CUSTOM_INJECT_CFG_TYPE "CANCommanderCustomInject"
 #define APP_CUSTOM_INJECT_CFG_VER  1U
-#define APP_CUSTOM_INJECT_SET_DIR  APP_DATA_PATH("slot_sets")
-#define APP_CUSTOM_INJECT_SET_TYPE "CANCommanderSlotSet"
-#define APP_CUSTOM_INJECT_SET_VER  1U
-#define APP_DBC_CONFIG_DIR         APP_DATA_PATH("dbc_configs")
-#define APP_DBC_CONFIG_TYPE        "CANCommanderDbcConfig"
-#define APP_DBC_CONFIG_VER         1U
+#define APP_CUSTOM_INJECT_SET_DIR         APP_SMART_INJECT_PROFILE_DIR
+#define APP_CUSTOM_INJECT_SET_LEGACY_DIR  APP_SMART_INJECT_PROFILE_LEGACY_DIR
+#define APP_CUSTOM_INJECT_SET_TYPE        APP_SMART_INJECT_PROFILE_FILETYPE
+#define APP_CUSTOM_INJECT_SET_LEGACY_TYPE APP_SMART_INJECT_PROFILE_LEGACY_FILETYPE
+#define APP_CUSTOM_INJECT_SET_VER         APP_SMART_INJECT_PROFILE_VER
+#define APP_DBC_CONFIG_DIR                APP_DBC_DECODE_PROFILE_DIR
+#define APP_DBC_CONFIG_LEGACY_DIR         APP_DBC_DECODE_PROFILE_LEGACY_DIR
+#define APP_DBC_CONFIG_TYPE               APP_DBC_DECODE_PROFILE_FILETYPE
+#define APP_DBC_CONFIG_LEGACY_TYPE        APP_DBC_DECODE_PROFILE_LEGACY_FILETYPE
+#define APP_DBC_CONFIG_VER                APP_DBC_DECODE_PROFILE_VER
 
 static void app_free(App* app);
 
@@ -2588,7 +2592,7 @@ static void app_custom_inject_safe_name(const char* src, char* out, size_t out_s
 
     out[0] = '\0';
     if(!src || src[0] == '\0') {
-        app_copy_string(out, out_size, "slot_set");
+        app_copy_string(out, out_size, "profile");
         return;
     }
 
@@ -2609,7 +2613,7 @@ static void app_custom_inject_safe_name(const char* src, char* out, size_t out_s
     }
 
     if(w == 0U) {
-        app_copy_string(out, out_size, "slot_set");
+        app_copy_string(out, out_size, "profile");
         return;
     }
 
@@ -2648,6 +2652,23 @@ static bool app_storage_ensure_dir(Storage* storage, const char* dir_path) {
     return storage_dir_exists(storage, dir_path);
 }
 
+static void app_ensure_startup_dirs(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) {
+        return;
+    }
+
+    char data_dir[96] = {0};
+    app_path_parent_dir(APP_CUSTOM_INJECT_CFG_PATH, data_dir, sizeof(data_dir));
+    if(data_dir[0] != '\0') {
+        (void)app_storage_ensure_dir(storage, data_dir);
+    }
+
+    (void)app_storage_ensure_dir(storage, APP_CUSTOM_INJECT_SET_DIR);
+    (void)app_storage_ensure_dir(storage, APP_DBC_CONFIG_DIR);
+    furi_record_close(RECORD_STORAGE);
+}
+
 static void app_custom_inject_build_set_path(const char* set_name, char* out_path, size_t out_size) {
     if(!out_path || out_size == 0U) {
         return;
@@ -2655,7 +2676,7 @@ static void app_custom_inject_build_set_path(const char* set_name, char* out_pat
 
     char safe[48] = {0};
     app_custom_inject_safe_name(set_name, safe, sizeof(safe));
-    snprintf(out_path, out_size, "%s/%s.cfg", APP_CUSTOM_INJECT_SET_DIR, safe);
+    snprintf(out_path, out_size, "%s/%s%s", APP_CUSTOM_INJECT_SET_DIR, safe, APP_SMART_INJECT_PROFILE_EXT);
     out_path[out_size - 1U] = '\0';
 }
 
@@ -2750,7 +2771,7 @@ bool app_custom_inject_save_slot_set(App* app, const char* set_name) {
     char name_trim[32] = {0};
     app_custom_inject_trim_copy(set_name, name_trim, sizeof(name_trim));
     if(name_trim[0] == '\0') {
-        app_set_status(app, "Slot set name required");
+        app_set_status(app, "Smart Injection profile name required");
         return false;
     }
 
@@ -2761,7 +2782,7 @@ bool app_custom_inject_save_slot_set(App* app, const char* set_name) {
     FlipperFormat* ff = flipper_format_file_alloc(storage);
     if(!ff) {
         furi_record_close(RECORD_STORAGE);
-        app_set_status(app, "Save slot set failed");
+        app_set_status(app, "Save Smart Injection profile failed");
         return false;
     }
 
@@ -2952,9 +2973,9 @@ bool app_custom_inject_save_slot_set(App* app, const char* set_name) {
 
     if(ok) {
         app_copy_string(app->custom_inject_set_name, sizeof(app->custom_inject_set_name), name_trim);
-        app_set_status(app, "Saved slot set: %s", name_trim);
+        app_set_status(app, "Saved Smart Injection profile: %s", name_trim);
     } else {
-        app_set_status(app, "Save slot set failed");
+        app_set_status(app, "Save Smart Injection profile failed");
     }
 
     return ok;
@@ -2975,7 +2996,7 @@ bool app_custom_inject_load_slot_set_file(App* app, const char* file_path) {
         if(file_type) furi_string_free(file_type);
         if(ff) flipper_format_free(ff);
         furi_record_close(RECORD_STORAGE);
-        app_set_status(app, "Load slot set failed");
+        app_set_status(app, "Load Smart Injection profile failed");
         return false;
     }
 
@@ -2990,8 +3011,10 @@ bool app_custom_inject_load_slot_set_file(App* app, const char* file_path) {
         if(!flipper_format_read_header(ff, file_type, &version)) {
             break;
         }
-        if(!furi_string_equal_str(file_type, APP_CUSTOM_INJECT_SET_TYPE) ||
-           version != APP_CUSTOM_INJECT_SET_VER) {
+        const bool filetype_ok =
+            furi_string_equal_str(file_type, APP_CUSTOM_INJECT_SET_TYPE) ||
+            furi_string_equal_str(file_type, APP_CUSTOM_INJECT_SET_LEGACY_TYPE);
+        if(!filetype_ok || version != APP_CUSTOM_INJECT_SET_VER) {
             break;
         }
 
@@ -3168,12 +3191,12 @@ bool app_custom_inject_load_slot_set_file(App* app, const char* file_path) {
         if(loaded_name[0] != '\0') {
             app_copy_string(
                 app->custom_inject_set_name, sizeof(app->custom_inject_set_name), loaded_name);
-            app_set_status(app, "Loaded slot set: %s", loaded_name);
+            app_set_status(app, "Loaded Smart Injection profile: %s", loaded_name);
         } else {
-            app_set_status(app, "Loaded slot set");
+            app_set_status(app, "Loaded Smart Injection profile");
         }
     } else {
-        app_set_status(app, "Load slot set failed");
+        app_set_status(app, "Load Smart Injection profile failed");
     }
 
     return ok;
@@ -3335,7 +3358,7 @@ static void app_dbc_compose_path(const char* config_name, char* out_path, size_t
 
     char safe[48] = {0};
     app_custom_inject_safe_name(config_name, safe, sizeof(safe));
-    snprintf(out_path, out_size, "%s/%s.dcfg", APP_DBC_CONFIG_DIR, safe);
+    snprintf(out_path, out_size, "%s/%s%s", APP_DBC_CONFIG_DIR, safe, APP_DBC_DECODE_PROFILE_EXT);
     out_path[out_size - 1U] = '\0';
 }
 
@@ -3395,14 +3418,14 @@ static bool app_dbc_config_apply_to_firmware(App* app) {
     CcStatusCode status = CcStatusUnknown;
     if(!cc_client_dbc_clear(app->client, &status)) {
         app->connected = false;
-        app_set_status(app, "DBC config apply: clear transport error");
-        app_append_monitor(app, "[dbc cfg] clear transport error");
+        app_set_status(app, "DBC profile apply: clear transport error");
+        app_append_monitor(app, "[dbc profile] clear transport error");
         return false;
     }
 
-    app_append_monitor(app, "[dbc cfg] clear => %s", cc_status_to_string(status));
+    app_append_monitor(app, "[dbc profile] clear => %s", cc_status_to_string(status));
     if(status != CcStatusOk) {
-        app_set_status(app, "DBC config apply: clear => %s", cc_status_to_string(status));
+        app_set_status(app, "DBC profile apply: clear => %s", cc_status_to_string(status));
         return false;
     }
 
@@ -3416,21 +3439,21 @@ static bool app_dbc_config_apply_to_firmware(App* app) {
         status = CcStatusUnknown;
         if(!cc_client_dbc_add_signal(app->client, &signal->def, &status)) {
             app->connected = false;
-            app_set_status(app, "DBC config apply: add transport error (sid=%u)", signal->def.sid);
+            app_set_status(app, "DBC profile apply: add transport error (sid=%u)", signal->def.sid);
             app_append_monitor(
-                app, "[dbc cfg] add sid=%u transport error", (unsigned)signal->def.sid);
+                app, "[dbc profile] add sid=%u transport error", (unsigned)signal->def.sid);
             return false;
         }
 
         app_append_monitor(
             app,
-            "[dbc cfg] add sid=%u => %s",
+            "[dbc profile] add sid=%u => %s",
             (unsigned)signal->def.sid,
             cc_status_to_string(status));
         if(status != CcStatusOk) {
             app_set_status(
                 app,
-                "DBC config apply: add sid=%u => %s",
+                "DBC profile apply: add sid=%u => %s",
                 (unsigned)signal->def.sid,
                 cc_status_to_string(status));
             return false;
@@ -3438,7 +3461,7 @@ static bool app_dbc_config_apply_to_firmware(App* app) {
         applied++;
     }
 
-    app_set_status(app, "DBC config applied (%u signals)", (unsigned)applied);
+    app_set_status(app, "DBC profile applied (%u signals)", (unsigned)applied);
     return true;
 }
 
@@ -3450,7 +3473,7 @@ bool app_dbc_config_save_file(App* app, const char* config_name) {
     char name_trim[32] = {0};
     app_custom_inject_trim_copy(config_name, name_trim, sizeof(name_trim));
     if(name_trim[0] == '\0') {
-        app_set_status(app, "DBC config name required");
+        app_set_status(app, "DBC profile name required");
         return false;
     }
 
@@ -3461,7 +3484,7 @@ bool app_dbc_config_save_file(App* app, const char* config_name) {
     FlipperFormat* ff = flipper_format_file_alloc(storage);
     if(!ff) {
         furi_record_close(RECORD_STORAGE);
-        app_set_status(app, "Save DBC config failed");
+        app_set_status(app, "Save DBC profile failed");
         return false;
     }
 
@@ -3632,9 +3655,9 @@ bool app_dbc_config_save_file(App* app, const char* config_name) {
     if(ok) {
         app_copy_string(app->dbc_config_name, sizeof(app->dbc_config_name), name_trim);
         app_copy_string(app->dbc_config_save_name, sizeof(app->dbc_config_save_name), name_trim);
-        app_set_status(app, "Saved DBC config: %s", name_trim);
+        app_set_status(app, "Saved DBC profile: %s", name_trim);
     } else {
-        app_set_status(app, "Save DBC config failed");
+        app_set_status(app, "Save DBC profile failed");
     }
 
     return ok;
@@ -3685,7 +3708,7 @@ bool app_dbc_config_load_file(App* app, const char* file_path, bool apply_to_fir
             flipper_format_free(ff);
         }
         furi_record_close(RECORD_STORAGE);
-        app_set_status(app, "Load DBC config failed");
+        app_set_status(app, "Load DBC profile failed");
         return false;
     }
 
@@ -3700,9 +3723,10 @@ bool app_dbc_config_load_file(App* app, const char* file_path, bool apply_to_fir
         if(!flipper_format_read_header(ff, file_type, &version)) {
             break;
         }
-        if(
-            !furi_string_equal_str(file_type, APP_DBC_CONFIG_TYPE) ||
-            version != APP_DBC_CONFIG_VER) {
+        const bool filetype_ok =
+            furi_string_equal_str(file_type, APP_DBC_CONFIG_TYPE) ||
+            furi_string_equal_str(file_type, APP_DBC_CONFIG_LEGACY_TYPE);
+        if(!filetype_ok || version != APP_DBC_CONFIG_VER) {
             break;
         }
 
@@ -3936,7 +3960,7 @@ bool app_dbc_config_load_file(App* app, const char* file_path, bool apply_to_fir
             }
         }
         if(loaded_name[0] == '\0') {
-            app_copy_string(loaded_name, sizeof(loaded_name), "dbc_config");
+            app_copy_string(loaded_name, sizeof(loaded_name), "dbc_profile");
         }
         app_copy_string(app->dbc_config_name, sizeof(app->dbc_config_name), loaded_name);
         app_copy_string(app->dbc_config_save_name, sizeof(app->dbc_config_save_name), loaded_name);
@@ -3952,10 +3976,10 @@ bool app_dbc_config_load_file(App* app, const char* file_path, bool apply_to_fir
     if(ok) {
         app_set_status(
             app,
-            apply_to_firmware ? "Loaded+applied DBC config: %s" : "Loaded DBC config: %s",
-            app->dbc_config_name[0] ? app->dbc_config_name : "dbc_config");
+            apply_to_firmware ? "Loaded+applied DBC profile: %s" : "Loaded DBC profile: %s",
+            app->dbc_config_name[0] ? app->dbc_config_name : "dbc_profile");
     } else {
-        app_set_status(app, "Load DBC config failed");
+        app_set_status(app, "Load DBC profile failed");
     }
 
     return ok;
@@ -4314,7 +4338,7 @@ static void app_set_default_args(App* app) {
         app->custom_inject_edit_mux_value,
         "mux_value=0",
         sizeof(app->custom_inject_edit_mux_value) - 1U);
-    strncpy(app->custom_inject_set_name, "slot_set", sizeof(app->custom_inject_set_name) - 1U);
+    strncpy(app->custom_inject_set_name, "inj_profile", sizeof(app->custom_inject_set_name) - 1U);
 
     strncpy(app->args_tool_config, "show=both", sizeof(app->args_tool_config) - 1U);
 
@@ -4342,8 +4366,8 @@ static void app_set_default_args(App* app) {
         sizeof(app->args_dbc_add) - 1U);
 
     strncpy(app->args_dbc_remove, "sid=1", sizeof(app->args_dbc_remove) - 1U);
-    app_copy_string(app->dbc_config_name, sizeof(app->dbc_config_name), "dbc_config");
-    app_copy_string(app->dbc_config_save_name, sizeof(app->dbc_config_save_name), "dbc_config");
+    app_copy_string(app->dbc_config_name, sizeof(app->dbc_config_name), "dbc_profile");
+    app_copy_string(app->dbc_config_save_name, sizeof(app->dbc_config_save_name), "dbc_profile");
     app_dbc_config_reset(app);
 }
 
@@ -4577,6 +4601,7 @@ static App* app_alloc(void) {
     dashboard_set_mode(app, AppDashboardNone);
 
     app_set_default_args(app);
+    app_ensure_startup_dirs();
     app_custom_inject_load(app);
     app_set_status(app, "Ready. Connect on first action");
 
