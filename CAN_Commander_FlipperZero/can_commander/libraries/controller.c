@@ -572,10 +572,11 @@ void controller_handle(const CcEvent* event) {
             // Take the bottom 12 bits from bytes 0 and 1
             int16_t steer_value = (uint16_t)((data[0] << 12) | (data[1] << 4));
 
-            // Multiply by 120 to make it easier to press
-            if (steer_value > 0 && steer_value > (32767/120)) steer_value = 32767;
-            else if (steer_value < 0 && steer_value < (-32768/120)) steer_value = -32768;
-            else steer_value *= 120;
+            // Multiply by 250 to make it easier to press
+			#define STEER_MULT 250
+            if (steer_value > 0 && steer_value > (32767/STEER_MULT)) steer_value = 32767;
+            else if (steer_value < 0 && steer_value < (-32767/STEER_MULT)) steer_value = -32767;
+            else steer_value *= STEER_MULT;
 
 			// Reverse because my car uses negative=right
 			steer_value = -steer_value;
