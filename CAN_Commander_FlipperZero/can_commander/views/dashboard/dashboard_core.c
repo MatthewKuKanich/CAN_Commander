@@ -29,6 +29,10 @@ void dashboard_view_draw(Canvas* canvas, void* model) {
         return;
     }
 
+    if(dashboard_controller_draw(canvas, dashboard)) {
+        return;
+    }
+
     dashboard_metric_draw(canvas, dashboard);
 }
 
@@ -51,6 +55,10 @@ bool dashboard_view_input(InputEvent* event, void* context) {
     }
 
     if(dashboard_metric_input(app, event)) {
+        return true;
+    }
+
+    if(dashboard_controller_input(app, event)) {
         return true;
     }
 
@@ -289,8 +297,12 @@ static void dashboard_init_mode(App* app, AppDashboardMode mode) {
                 app, "CUSTOM INJECT", "Slot", slot_value, "", "Waiting for slot data");
         }
         break;
+    case AppDashboardGameController:
+        controller_start();
+        break;
     case AppDashboardNone:
     default:
+        controller_stop();
         dashboard_apply_template(app, "CAN Commander", "Live Monitor", "--", "", "");
         break;
     }
@@ -414,6 +426,12 @@ bool dashboard_handle_event(App* app, const CcEvent* event) {
     case AppDashboardCustomInject:
         if(event->type == CcEventTypeTool && event->data.tool.tool == CcToolCustomInject) {
             dashboard_update_custom_inject(app, event);
+            return true;
+        }
+        return false;
+    case AppDashboardGameController:
+        if(event->type == CcEventTypeCanFrame) {
+            dashboard_controller_update(app, event);
             return true;
         }
         return false;

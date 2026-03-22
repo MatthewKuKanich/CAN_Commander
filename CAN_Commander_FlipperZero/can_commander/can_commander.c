@@ -1469,7 +1469,11 @@ void app_action_tool_start(App* app, CcToolId tool_id, const char* args, const c
     }
 
     if(status == CcStatusOk) {
-        dashboard_set_mode(app, dashboard_mode_for_tool(tool_id));
+        if (strcmp(label, "controller") == 0) {
+            dashboard_set_mode(app, AppDashboardGameController);
+        } else {
+            dashboard_set_mode(app, dashboard_mode_for_tool(tool_id));
+        }
     } else {
         dashboard_set_mode(app, AppDashboardNone);
     }

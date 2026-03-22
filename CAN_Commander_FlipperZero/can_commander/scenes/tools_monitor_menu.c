@@ -10,6 +10,7 @@ typedef enum {
     ToolsMonitorReverseAuto,
     ToolsMonitorValtrack,
     ToolsMonitorSpeed,
+    ToolsGameController,
 } ToolsMonitorMenuIndex;
 
 static void cancommander_scene_tools_monitor_menu_callback(void* context, uint32_t index) {
@@ -100,6 +101,12 @@ void cancommander_scene_tools_monitor_menu_on_enter(void* context) {
         ToolsMonitorSpeed,
         cancommander_scene_tools_monitor_menu_callback,
         app);
+    submenu_add_item(
+        app->submenu,
+        "Game Controller",
+        ToolsGameController,
+        cancommander_scene_tools_monitor_menu_callback,
+        app);
 
     submenu_set_selected_item(
         app->submenu,
@@ -187,6 +194,16 @@ bool cancommander_scene_tools_monitor_menu_on_event(void* context, SceneManagerE
             app->args_speed,
             sizeof(app->args_speed),
             "CAN Speed Test");
+        return true;
+
+    case ToolsGameController:
+        cancommander_scene_tools_monitor_open_tool_args(
+            app,
+            CcToolReadAll,
+            "controller",
+            app->args_read_all,
+            sizeof(app->args_read_all),
+            "Game Controller");
         return true;
 
     default:

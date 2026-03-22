@@ -197,3 +197,7 @@ void dashboard_update_unique_ids(App* app, const CcEvent* event);
 void dashboard_update_reverse(App* app, const CcEvent* event);
 void dashboard_update_dbc_decode(App* app, const CcEvent* event);
 void dashboard_update_custom_inject(App* app, const CcEvent* event);
+
+bool dashboard_controller_draw(Canvas* canvas, const AppDashboardModel* dashboard);
+bool dashboard_controller_input(App* app, const InputEvent* event);
+void dashboard_controller_update(App* app, const CcEvent* event);
