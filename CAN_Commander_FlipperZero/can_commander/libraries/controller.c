@@ -523,6 +523,9 @@ void controller_stop() {
 	running = false;
 
 	furi_check(furi_hal_usb_set_config(NULL, NULL));
+
+	// reboot the system to get usb working again
+    furi_hal_power_reset();
 }
 
 void controller_enable() {
@@ -580,6 +583,23 @@ void controller_handle(const CcEvent* event) {
             current_surface.left_x = steer_value;
             break;
         
+		case 0x614: // Turn signals
+			// Signal is inverted (1=no signal, 0=signal)
+			bool left_turn_signal = (~data[3] >> 5) & 0b1;
+			bool right_turn_signal = (~data[3] >> 4) & 0b1;
+
+			// Use left turn signal as handbrake
+            if (left_turn_signal)
+				current_surface.buttons |= A;
+			else
+				current_surface.buttons &= ~A;
+
+			// Use right turn signal as menu button
+            if (right_turn_signal)
+				current_surface.buttons |= START;
+			else
+				current_surface.buttons &= ~START;
+			break;
     }
 
 	// Don't send data to the computer too quickly

@@ -18,14 +18,6 @@ bool dashboard_controller_draw(Canvas* canvas, const AppDashboardModel* dashboar
         return true;
     }
 
-    if (!controller_is_enabled()) {
-        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "USB mode changed.");
-        canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "Connect to host");
-        canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignCenter, "then press OK to");
-        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "start.");
-        return true;
-    }
-
     char fps_text[24] = {0};
     snprintf(fps_text, sizeof(fps_text), "Rate: %lu fps", (unsigned long)dashboard->read_rate_fps);
 

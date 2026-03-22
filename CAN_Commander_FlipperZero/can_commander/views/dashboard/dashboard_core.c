@@ -297,8 +297,12 @@ static void dashboard_init_mode(App* app, AppDashboardMode mode) {
                 app, "CUSTOM INJECT", "Slot", slot_value, "", "Waiting for slot data");
         }
         break;
+    case AppDashboardGameController:
+        controller_start();
+        break;
     case AppDashboardNone:
     default:
+        controller_stop();
         dashboard_apply_template(app, "CAN Commander", "Live Monitor", "--", "", "");
         break;
     }
