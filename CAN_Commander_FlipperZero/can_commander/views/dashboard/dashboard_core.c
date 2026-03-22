@@ -1,4 +1,3 @@
-#include "../../controller.h"
 #include "dashboard_i.h"
 
 #include <stdio.h>
@@ -30,6 +29,10 @@ void dashboard_view_draw(Canvas* canvas, void* model) {
         return;
     }
 
+    if(dashboard_controller_draw(canvas, dashboard)) {
+        return;
+    }
+
     dashboard_metric_draw(canvas, dashboard);
 }
 
@@ -52,6 +55,10 @@ bool dashboard_view_input(InputEvent* event, void* context) {
     }
 
     if(dashboard_metric_input(app, event)) {
+        return true;
+    }
+
+    if(dashboard_controller_input(app, event)) {
         return true;
     }
 
@@ -295,7 +302,6 @@ static void dashboard_init_mode(App* app, AppDashboardMode mode) {
         dashboard_apply_template(app, "CAN Commander", "Live Monitor", "--", "", "");
         break;
     }
-    controller_start();
 }
 
 void dashboard_set_mode(App* app, AppDashboardMode mode) {
@@ -355,7 +361,6 @@ bool dashboard_handle_event(App* app, const CcEvent* event) {
     switch(dashboard_get_mode(app)) {
     case AppDashboardReadAll:
         if(event->type == CcEventTypeCanFrame) {
-            controller_handle(event);
             dashboard_read_update(app, event, "READ ALL");
             return true;
         }
@@ -417,6 +422,12 @@ bool dashboard_handle_event(App* app, const CcEvent* event) {
     case AppDashboardCustomInject:
         if(event->type == CcEventTypeTool && event->data.tool.tool == CcToolCustomInject) {
             dashboard_update_custom_inject(app, event);
+            return true;
+        }
+        return false;
+    case AppDashboardGameController:
+        if(event->type == CcEventTypeCanFrame) {
+            dashboard_controller_update(app, event);
             return true;
         }
         return false;

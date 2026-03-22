@@ -1,4 +1,6 @@
-#include "can_commander.h"
+// Source: https://github.com/expected-ingot/flipper-xinput/blob/master/app.c
+
+#include "controller.h"
 
 #include <furi.h>
 #include <furi_hal.h>
@@ -133,7 +135,7 @@ struct XboxConfigDescriptor {
 	struct XboxIntf3Descriptor intf_3;
 } FURI_PACKED;
 
-static struct usb_device_descriptor xbox_device_desc = {
+struct usb_device_descriptor xbox_device_desc = {
 	.bLength = 0x12,
 	.bDescriptorType = 0x01,
 	.bcdUSB = 0x0200,
@@ -150,7 +152,7 @@ static struct usb_device_descriptor xbox_device_desc = {
 	.bNumConfigurations = 0x01,
 };
 
-static const struct XboxConfigDescriptor xbox_cfg_desc = {
+const struct XboxConfigDescriptor xbox_cfg_desc = {
 	.config = {
 		.bLength = 9,
 		.bDescriptorType = 0x02, // CONFIGURATION
@@ -332,13 +334,14 @@ static const struct XboxConfigDescriptor xbox_cfg_desc = {
 
 };
 
-static bool boot_protocol = false;
-static usbd_device* usb_dev;
-static FuriSemaphore* hid_semaphore = NULL;
-static bool hid_connected = false;
-static bool controller_started = false;
+bool boot_protocol = false;
+usbd_device* usb_dev;
+FuriSemaphore* hid_semaphore = NULL;
+bool hid_connected = false;
+bool started = false;
+bool running = false;
 
-static void* hid_set_string_descr(char* str) {
+void* hid_set_string_descr(char* str) {
 	furi_assert(str);
 
 	size_t len = strlen(str);
@@ -351,7 +354,7 @@ static void* hid_set_string_descr(char* str) {
 	return dev_str_desc;
 }
 
-static void hid_txrx_ep_callback(usbd_device* dev, uint8_t event, uint8_t ep) {
+void hid_txrx_ep_callback(usbd_device* dev, uint8_t event, uint8_t ep) {
 	UNUSED(dev);
 	UNUSED(ep);
 	if(event == usbd_evt_eptx) {
@@ -365,7 +368,7 @@ static void hid_txrx_ep_callback(usbd_device* dev, uint8_t event, uint8_t ep) {
 		//led_state = leds.led_state;
 	}
 }
-static usbd_respond hid_ep_config(usbd_device* dev, uint8_t cfg) {
+usbd_respond hid_ep_config(usbd_device* dev, uint8_t cfg) {
 	switch(cfg) {
 	case 0:
 		/* deconfiguring device */
@@ -383,7 +386,7 @@ static usbd_respond hid_ep_config(usbd_device* dev, uint8_t cfg) {
 		return usbd_fail;
 	}
 }
-static usbd_respond hid_control(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_callback* callback) {
+usbd_respond hid_control(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_callback* callback) {
 	UNUSED(callback);
 	/* HID control requests */
 	if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
@@ -428,26 +431,28 @@ static usbd_respond hid_control(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_cal
 	return usbd_fail;
 }
 
-static void hid_deinit(usbd_device* dev) {
+void hid_deinit(usbd_device* dev) {
+	running = false;
 	usbd_reg_config(dev, NULL);
 	usbd_reg_control(dev, NULL);
 }
-static void hid_on_wakeup(usbd_device* dev) {
+void hid_on_wakeup(usbd_device* dev) {
 	UNUSED(dev);
 	if(!hid_connected) {
 		hid_connected = true;
 	}
 }
-static void hid_on_suspend(usbd_device* dev) {
+void hid_on_suspend(usbd_device* dev) {
 	UNUSED(dev);
 	if(hid_connected) {
 		hid_connected = false;
+		running = false;
 		furi_semaphore_release(hid_semaphore);
 	}
 }
 
-static bool hid_send_report() {
-	if((hid_semaphore == NULL) || (hid_connected == false)) return false;
+bool hid_send_report() {
+	if((hid_semaphore == NULL) || (hid_connected == false) || (running == false)) return false;
 	FuriStatus status = furi_semaphore_acquire(hid_semaphore, 8 * 2);
 	if(status == FuriStatusErrorTimeout) {
 		return false;
@@ -462,7 +467,7 @@ static bool hid_send_report() {
 	return true;
 }
 
-static void hid_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx);
+void hid_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx);
 
 FuriHalUsbInterface usb_xbox = {
 	.init = hid_init,
@@ -479,7 +484,7 @@ FuriHalUsbInterface usb_xbox = {
 	.cfg_descr = (void*)&xbox_cfg_desc
 };
 
-static void hid_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx) {
+void hid_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx) {
 	UNUSED(intf);
 	UNUSED(ctx);
 	// FuriHalUsbHidConfig* cfg = (FuriHalUsbHidConfig*)ctx;
@@ -504,29 +509,38 @@ static void hid_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void controller_start() {
-	if (controller_started) return;
-	controller_started = true;
+void controller_start() {
+	if (started) return;
+	started = true;
+	running = false;
 
 	furi_check(furi_hal_usb_set_config(&usb_xbox, NULL));
 }
 
-/*
-static void controller_stop() {
-	if (!controller_started) return;
-	controller_started = false;
+void controller_stop() {
+	if (!started) return;
+	started = false;
+	running = false;
 
 	furi_check(furi_hal_usb_set_config(NULL, NULL));
 }
-*/
 
-static void controller_handle(const CcEvent* event) {
+void controller_enable() {
+	running = true;
+}
+
+bool controller_is_enabled() {
+	return running;
+}
+
+void controller_handle(const CcEvent* event) {
     if(!event || event->type != CcEventTypeCanFrame) {
         return;
     }
 
 	const uint8_t *data = event->data.can_frame.data;
 
+	// TODO: Should parse this from DBC or similar and allow user customization
     switch (event->data.can_frame.id) {
         case 0x224: // Brake (range 0-512)
             // Take bytes 4 and 5

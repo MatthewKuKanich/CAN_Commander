@@ -14,6 +14,7 @@
 #include <gui/view_dispatcher.h>
 
 #include "libraries/can_commander_uart.h"
+#include "libraries/controller.h"
 #include "scenes_config/scene_functions.h"
 
 #define PROGRAM_VERSION "v2.1.1"
@@ -65,6 +66,7 @@ typedef enum {
     AppDashboardObdPid,
     AppDashboardDbcDecode,
     AppDashboardCustomInject,
+    AppDashboardGameController,
 } AppDashboardMode;
 
 typedef enum {

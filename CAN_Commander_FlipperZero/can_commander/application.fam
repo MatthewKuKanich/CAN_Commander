@@ -9,11 +9,13 @@ App(
     fap_category="GPIO",
     sources=[
         "can_commander.c",
+        "libraries/controller.c",
         "libraries/can_commander_uart.c",
         "views/dashboard/dashboard_core.c",
         "views/dashboard/dashboard_read.c",
         "views/dashboard/dashboard_bittrack.c",
         "views/dashboard/dashboard_metric.c",
+        "views/dashboard/dashboard_controller.c",
         "scenes_config/scene_functions.c",
         "scenes/main_menu.c",
         "scenes/debug_menu.c",
