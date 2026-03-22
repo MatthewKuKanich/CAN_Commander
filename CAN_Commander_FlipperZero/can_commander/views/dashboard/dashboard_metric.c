@@ -1519,7 +1519,6 @@ void dashboard_metric_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
 
     canvas_draw_rframe(canvas, 2, 12, 124, 50, 4);
 
-    canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 18, AlignCenter, AlignTop, dashboard->label);
 
     const bool use_big_value = (strlen(dashboard->value) <= 10U);

@@ -156,7 +156,6 @@ bool dashboard_read_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
         if(dashboard->read_overload) {
             char fps_text[24] = {0};
             snprintf(fps_text, sizeof(fps_text), "Rate: %lu fps", (unsigned long)dashboard->read_rate_fps);
-            canvas_set_font(canvas, FontSecondary);
             canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "Input overload");
             canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, fps_text);
             canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignCenter, "Rendering paused >1000");
@@ -166,7 +165,6 @@ bool dashboard_read_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
 
         const AppDashFrameEntry* entry = dashboard_read_get_selected(dashboard);
         if(!entry) {
-            canvas_set_font(canvas, FontSecondary);
             canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, "Waiting for CAN frames");
             canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "OK Hold  L/R Pg  U/D Nav");
             return true;
@@ -181,7 +179,6 @@ bool dashboard_read_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
         dashboard_format_hex_bytes(entry->data, 4U, 8U, entry->dlc, row_b, sizeof(row_b));
         snprintf(ts_line, sizeof(ts_line), "t=%lums", (unsigned long)entry->ts_ms);
 
-        canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 13, AlignCenter, AlignTop, header);
         canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignTop, ts_line);
 
@@ -202,7 +199,6 @@ bool dashboard_read_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
     } else if(page == 1U) {
         canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "Recent Frames");
         if(dashboard->read_count == 0U) {
-            canvas_set_font(canvas, FontSecondary);
             canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, "No frames yet");
             canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "L/R Pg  OK Hold");
             return true;
@@ -237,11 +233,9 @@ bool dashboard_read_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
                 (offset == selected) ? '>' : ' ',
                 preview);
 
-            canvas_set_font(canvas, FontSecondary);
             canvas_draw_str(canvas, 2, (int32_t)(22 + line * 10U), row);
         }
 
-        canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "U/D Sel  L/R Pg");
     } else {
         canvas_draw_str_aligned(canvas, 64, 2, AlignCenter, AlignTop, "Stats");
@@ -273,7 +267,6 @@ bool dashboard_read_draw(Canvas* canvas, const AppDashboardModel* dashboard) {
             snprintf(line4, sizeof(line4), "Feed:%s", dashboard->read_hold ? "Hold" : "Live");
         }
 
-        canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 20, line1);
         canvas_draw_str(canvas, 2, 31, line2);
         canvas_draw_str(canvas, 2, 42, line3);
