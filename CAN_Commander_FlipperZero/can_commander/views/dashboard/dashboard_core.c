@@ -1,3 +1,4 @@
+#include "../../controller.h"
 #include "dashboard_i.h"
 
 #include <stdio.h>
@@ -294,6 +295,7 @@ static void dashboard_init_mode(App* app, AppDashboardMode mode) {
         dashboard_apply_template(app, "CAN Commander", "Live Monitor", "--", "", "");
         break;
     }
+    controller_start();
 }
 
 void dashboard_set_mode(App* app, AppDashboardMode mode) {
@@ -353,6 +355,7 @@ bool dashboard_handle_event(App* app, const CcEvent* event) {
     switch(dashboard_get_mode(app)) {
     case AppDashboardReadAll:
         if(event->type == CcEventTypeCanFrame) {
+            controller_handle(event);
             dashboard_read_update(app, event, "READ ALL");
             return true;
         }
