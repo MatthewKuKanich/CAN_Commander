@@ -122,6 +122,13 @@ void App::setup() {
   Serial.begin(BoardConfig::USB_CLI_BAUD);
   delay(50);
 
+  if (!cli_tx_.initialize() || !flipper_tx_.initialize()) {
+    Serial.println("FATAL: unable to allocate output queues");
+    while (true) {
+      delay(1000);
+    }
+  }
+
   sendCliLine("CAN Commander v%s booting...", BoardConfig::FIRMWARE_VERSION_STRING);
 
 #if defined(ARDUINO_ARCH_ESP32)
