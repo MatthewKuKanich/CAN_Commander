@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "core/ParseUtils.h"
+#include "core/RingQueue.h"
 #include "decode/DbcSignalStore.h"
 #include "decode/SignalDecode.h"
 #include "fake_host.h"
@@ -113,6 +114,26 @@ TEST(parse_hex_rejects_partial_digits) {
   CHECK(!parseHexBytes("+1", out, 8, n));
   CHECK(!parseHexBytes("123", out, 8, n));
   CHECK(!parseHexBytes("112233445566778899", out, 8, n));
+}
+
+TEST(heap_ring_queue_initializes_explicitly) {
+  core::RingQueue<int, 2, core::HeapStorage> queue;
+  int value = 0;
+  bool dropped = true;
+
+  CHECK(!queue.pop(value));
+  CHECK(!queue.push(1));
+  CHECK(!queue.pushDropOldest(1, &dropped));
+  CHECK(!dropped);
+  CHECK(queue.initialize());
+  CHECK(queue.push(1));
+  CHECK(queue.push(2));
+  CHECK(queue.full());
+  CHECK(queue.pushDropOldest(3, &dropped));
+  CHECK(dropped);
+  CHECK(queue.pop(value) && value == 2);
+  CHECK(queue.pop(value) && value == 3);
+  CHECK(queue.empty());
 }
 
 // ---------------------------------------------------------------- DBC decode (F01-F07)
@@ -799,6 +820,7 @@ int main() {
   RUN(parse_optional_distinguishes_absent_from_invalid);
   RUN(parse_strings_never_truncate);
   RUN(parse_hex_rejects_partial_digits);
+  RUN(heap_ring_queue_initializes_explicitly);
 
   RUN(dbc_motorola_matches_dbc_sawtooth_layout);
   RUN(dbc_motorola_mux_uses_signal_byte_order);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <new>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -9,20 +10,28 @@ namespace core {
 template <typename T, size_t Capacity>
 struct InlineStorage {
   T items[Capacity];
+  bool initialize() { return true; }
+  bool ready() const { return true; }
   T *ptr() { return items; }
   const T *ptr() const { return items; }
 };
 
-// Storage allocated once from the heap when the queue is constructed. Use it for
-// large queues: on the classic ESP32, static data must fit a single DRAM region,
-// while the heap can also use the remaining DRAM.
+// Storage allocated from the heap on explicit initialization, after runtime startup.
+// Use it for large queues that do not fit in the classic ESP32's static DRAM region.
 template <typename T, size_t Capacity>
 struct HeapStorage {
   T *items;
-  HeapStorage() : items(new T[Capacity]) {}
+  HeapStorage() : items(nullptr) {}
   ~HeapStorage() { delete[] items; }
   HeapStorage(const HeapStorage &) = delete;
   HeapStorage &operator=(const HeapStorage &) = delete;
+  bool initialize() {
+    if (items == nullptr) {
+      items = new (std::nothrow) T[Capacity];
+    }
+    return items != nullptr;
+  }
+  bool ready() const { return items != nullptr; }
   T *ptr() { return items; }
   const T *ptr() const { return items; }
 };
@@ -32,8 +41,10 @@ class RingQueue {
  public:
   RingQueue() : head_(0), tail_(0), count_(0) {}
 
+  bool initialize() { return storage_.initialize(); }
+
   bool push(const T &item) {
-    if (count_ >= Capacity) {
+    if (!storage_.ready() || count_ >= Capacity) {
       return false;
     }
     storage_.ptr()[head_] = item;
@@ -43,7 +54,7 @@ class RingQueue {
   }
 
   bool pop(T &out) {
-    if (count_ == 0) {
+    if (!storage_.ready() || count_ == 0) {
       return false;
     }
     out = storage_.ptr()[tail_];
@@ -54,6 +65,12 @@ class RingQueue {
 
   bool pushDropOldest(const T &item, bool *dropped_oldest = nullptr) {
     bool dropped = false;
+    if (!storage_.ready()) {
+      if (dropped_oldest != nullptr) {
+        *dropped_oldest = false;
+      }
+      return false;
+    }
     if (count_ >= Capacity) {
       tail_ = (tail_ + 1) % Capacity;
       --count_;
@@ -67,7 +84,9 @@ class RingQueue {
   }
 
   // Oldest item without removing it, or nullptr when empty.
-  const T *front() const { return count_ == 0 ? nullptr : &storage_.ptr()[tail_]; }
+  const T *front() const {
+    return !storage_.ready() || count_ == 0 ? nullptr : &storage_.ptr()[tail_];
+  }
 
   bool empty() const { return count_ == 0; }
   bool full() const { return count_ >= Capacity; }
