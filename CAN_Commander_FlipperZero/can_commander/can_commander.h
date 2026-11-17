@@ -14,6 +14,7 @@
 #include <gui/view_dispatcher.h>
 
 #include "libraries/can_commander_uart.h"
+#include "libraries/can_commander_string.h"
 #include "scenes_config/scene_functions.h"
 
 #define PROGRAM_VERSION "v2.3.1"
