@@ -1,4 +1,5 @@
 #include "dashboard_i.h"
+#include "../../libraries/can_commander_string.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -157,7 +158,7 @@ static bool dashboard_parse_obd_dtc_line(
     uint8_t total = 0U;
 
     char* save_ptr = NULL;
-    char* token = strtok_r(scratch, " ", &save_ptr);
+    char* token = cc_strtok_r(scratch, " ", &save_ptr);
     while(token) {
         if(dashboard_is_dtc_code_token(token)) {
             total++;
@@ -178,7 +179,7 @@ static bool dashboard_parse_obd_dtc_line(
                 break;
             }
         }
-        token = strtok_r(NULL, " ", &save_ptr);
+        token = cc_strtok_r(NULL, " ", &save_ptr);
     }
 
     if(total == 0U) {
@@ -2091,12 +2092,12 @@ void dashboard_update_obd(App* app, const CcEvent* event) {
                             char scratch[96] = {0};
                             strncpy(scratch, right, sizeof(scratch) - 1U);
                             char* save_ptr = NULL;
-                            char* token = strtok_r(scratch, " ", &save_ptr);
+                            char* token = cc_strtok_r(scratch, " ", &save_ptr);
                             while(token) {
                                 if(dashboard_is_dtc_code_token(token)) {
                                     (void)dashboard_obd_dtc_add_unique(model, type_index, token);
                                 }
-                                token = strtok_r(NULL, " ", &save_ptr);
+                                token = cc_strtok_r(NULL, " ", &save_ptr);
                             }
                         }
 

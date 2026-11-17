@@ -45,9 +45,7 @@ static bool cancommander_scene_custom_event_callback(void* context, uint32_t eve
 static bool cancommander_scene_back_event_callback(void* context) {
     App* app = context;
 
-    if(
-        scene_manager_get_current_scene(app->scene_manager) == cancommander_scene_monitor &&
-        app->tool_active) {
+    if(app->monitor_scene_active && app->tool_active) {
         app_append_monitor(app, "[auto] back pressed => tool stop");
         app_action_tool_stop(app);
     }
@@ -946,7 +944,7 @@ bool app_args_set_key_value(char* args, size_t args_size, const char* key, const
     bool ok = false;
 
     char* save_ptr = NULL;
-    char* token = strtok_r(scratch, " ", &save_ptr);
+    char* token = cc_strtok_r(scratch, " ", &save_ptr);
 
     while(token) {
         char* eq = strchr(token, '=');
@@ -984,7 +982,7 @@ bool app_args_set_key_value(char* args, size_t args_size, const char* key, const
             used += step;
         }
 
-        token = strtok_r(NULL, " ", &save_ptr);
+        token = cc_strtok_r(NULL, " ", &save_ptr);
     }
 
     const int wrote = snprintf(
